@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "allowSyntheticDefaultImports": true,
+    "declaration": true,
+    "declarationDir": "types",
+    "emitDeclarationOnly": true,
+    "esModuleInterop": true, 
+    "forceConsistentCasingInFileNames": true,
+    "module": "ESNext",  
+    "moduleResolution": "node",
+    "outDir": "dist",
+    "skipLibCheck": true,
+    "sourceMap": true,
+    "strict": true, 
+    "target": "es5", 
+  },
+  "include": ["src"],
+  "exclude": ["dist", "example", "node_modules"]
+}
