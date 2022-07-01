@@ -1,34 +1,35 @@
-import { MutableRefObject, useCallback, useEffect, useRef, useState } from 'react';
+import { MouseEvent, useCallback, useEffect, useRef, useState } from 'react';
 
 export interface UseScrollMenuOptions {
   offset?: number;
   onActiveChange?: (attributes: ScrollMenuAttributes) => void;
+  scrollableElement?: HTMLElement;
 }
 
 export interface ScrollMenuAttributes {
   active?: string;
   isTransitioning: boolean;
   sectionRefs: Record<string, HTMLElement>;
-  triggerRefs: Record<string, HTMLElement>;
+  triggerRefs: Record<string, HTMLButtonElement>;
 }
 
 export interface ScrollMenu {
   active?: string;
   handleTriggerClick: (id: string) => (e: MouseEvent) => void;
   registerSectionRef: (id: string) => (ref: HTMLElement) => void;
-  registerTriggerRef: (id: string) => (ref: HTMLElement) => void;
+  registerTriggerRef: (id: string) => (ref: HTMLButtonElement) => void;
 }
 
 export const useScrollMenu = (options: UseScrollMenuOptions = {}): ScrollMenu => {
-  const { offset = 0, onActiveChange } = options;
+  const { offset = 0, onActiveChange, scrollableElement = document.documentElement } = options;
   const [active, setActive] = useState<string>();
   const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
 
   const sectionRefs = useRef<Record<string, HTMLElement>>({});
-  const triggerRefs = useRef<Record<string, HTMLElement>>({});
+  const triggerRefs = useRef<Record<string, HTMLButtonElement>>({});
 
   const registerSectionRef = useCallback((id: string) => (ref: HTMLElement) => (sectionRefs.current[id] = ref), []);
-  const registerTriggerRef = useCallback((id: string) => (ref: HTMLElement) => (triggerRefs.current[id] = ref), []);
+  const registerTriggerRef = useCallback((id: string) => (ref: HTMLButtonElement) => (triggerRefs.current[id] = ref), []);
   const handleTriggerClick = useCallback(
     (id: string) => (e: MouseEvent) => {
       e.preventDefault();
@@ -37,17 +38,17 @@ export const useScrollMenu = (options: UseScrollMenuOptions = {}): ScrollMenu =>
       const section = sectionRefs.current[id];
 
       if (section) {
-        const targetOffset = document.body.scrollTop + section.getBoundingClientRect().top - offset;
+        const targetOffset = scrollableElement.scrollTop + section.getBoundingClientRect().top - offset;
 
         // Scroll the body to the target section.
-        document.body.scrollTo({
+        window.scrollTo({
           behavior: 'smooth',
           top: targetOffset,
         });
 
         // Reset isTransitioning once smooth scrolling has completed.
         let interval = setInterval(() => {
-          if (document.body.scrollTop === targetOffset) {
+          if (scrollableElement.scrollTop === targetOffset) {
             clearInterval(interval);
             setIsTransitioning(false);
           }
@@ -74,10 +75,11 @@ export const useScrollMenu = (options: UseScrollMenuOptions = {}): ScrollMenu =>
       setActive(closestId);
     };
 
-    document.body.addEventListener('scroll', detectActiveSection);
+    detectActiveSection();
+    window.addEventListener('scroll', detectActiveSection);
 
     return () => {
-      document.body.removeEventListener('scroll', detectActiveSection);
+      window.removeEventListener('scroll', detectActiveSection);
     };
   }, [offset]);
 
