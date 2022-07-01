@@ -1,26 +1,26 @@
 import { MouseEvent, useCallback, useEffect, useRef, useState } from 'react';
 
-export interface UseScrollMenuOptions {
+export interface UseActiveMenuOptions {
   offset?: number;
-  onActiveChange?: (attributes: ScrollMenuAttributes) => void;
+  onActiveChange?: (attributes: ActiveMenuAttributes) => void;
   scrollableElement?: HTMLElement;
 }
 
-export interface ScrollMenuAttributes {
+export interface ActiveMenuAttributes {
   active?: string;
   isTransitioning: boolean;
   sectionRefs: Record<string, HTMLElement>;
   triggerRefs: Record<string, HTMLButtonElement>;
 }
 
-export interface ScrollMenu {
+export interface ActiveMenu {
   active?: string;
   handleTriggerClick: (id: string) => (e: MouseEvent) => void;
   registerSectionRef: (id: string) => (ref: HTMLElement) => void;
   registerTriggerRef: (id: string) => (ref: HTMLButtonElement) => void;
 }
 
-export const useScrollMenu = (options: UseScrollMenuOptions = {}): ScrollMenu => {
+export const useActiveMenu = (options: UseActiveMenuOptions = {}): ActiveMenu => {
   const { offset = 0, onActiveChange, scrollableElement = document.documentElement } = options;
   const [active, setActive] = useState<string>();
   const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
