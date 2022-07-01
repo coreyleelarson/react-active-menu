@@ -39,8 +39,12 @@ export const useActiveMenu = (options: UseActiveMenuOptions = {}): ActiveMenu =>
 
       const section = sectionRefs.current[id];
 
-      if (section) {
-        const targetOffset = scrollableContainer.scrollTop + section.getBoundingClientRect().top - offset;
+      if (section && scrollableContainer) {
+        const { top: containerTop } = scrollableContainer.getBoundingClientRect();
+        const { top: sectionTop } = section.getBoundingClientRect();
+        const relativeTop = sectionTop - containerTop;
+
+        const targetOffset = scrollableContainer.scrollTop + relativeTop - offset;
 
         // Scroll the body to the target section.
         scrollableContainer.scrollTo({
@@ -57,7 +61,7 @@ export const useActiveMenu = (options: UseActiveMenuOptions = {}): ActiveMenu =>
         });
       }
     },
-    [offset]
+    [offset, scrollableContainer]
   );
 
   // Detect active section on scroll.
@@ -65,11 +69,15 @@ export const useActiveMenu = (options: UseActiveMenuOptions = {}): ActiveMenu =>
     const detectActiveSection = () => {
       let closestId;
       let closestDimension;
+      
+      const { top: containerTop } = scrollableContainer.getBoundingClientRect();
 
       for (const [id, section] of Object.entries(sectionRefs.current)) {
-        const { top } = section.getBoundingClientRect();
-        if (!closestDimension || (top <= offset && top > closestDimension)) {
-          closestDimension = top;
+        const { top: sectionTop } = section.getBoundingClientRect();
+        const relativeTop = sectionTop - containerTop;
+
+        if (!closestDimension || (relativeTop <= offset && relativeTop > closestDimension)) {
+          closestDimension = sectionTop;
           closestId = id;
         }
       }
