@@ -1,9 +1,9 @@
-import { MouseEvent, useCallback, useEffect, useRef, useState } from 'react';
+import { MouseEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 export interface UseActiveMenuOptions {
   offset?: number;
   onActiveChange?: (attributes: ActiveMenuAttributes) => void;
-  scrollableElement?: HTMLElement;
+  scrollableElement?: HTMLElement | null;
 }
 
 export interface ActiveMenuAttributes {
@@ -21,9 +21,11 @@ export interface ActiveMenu {
 }
 
 export const useActiveMenu = (options: UseActiveMenuOptions = {}): ActiveMenu => {
-  const { offset = 0, onActiveChange, scrollableElement = document.documentElement } = options;
+  const { offset = 0, onActiveChange, scrollableElement } = options;
   const [active, setActive] = useState<string>();
   const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
+
+  const scrollableContainer = useMemo(() => scrollableElement || document.documentElement, [scrollableElement]);
 
   const sectionRefs = useRef<Record<string, HTMLElement>>({});
   const triggerRefs = useRef<Record<string, HTMLButtonElement>>({});
@@ -38,17 +40,17 @@ export const useActiveMenu = (options: UseActiveMenuOptions = {}): ActiveMenu =>
       const section = sectionRefs.current[id];
 
       if (section) {
-        const targetOffset = scrollableElement.scrollTop + section.getBoundingClientRect().top - offset;
+        const targetOffset = scrollableContainer.scrollTop + section.getBoundingClientRect().top - offset;
 
         // Scroll the body to the target section.
-        window.scrollTo({
+        scrollableContainer.scrollTo({
           behavior: 'smooth',
           top: targetOffset,
         });
 
         // Reset isTransitioning once smooth scrolling has completed.
         let interval = setInterval(() => {
-          if (scrollableElement.scrollTop === targetOffset) {
+          if (scrollableContainer.scrollTop === targetOffset) {
             clearInterval(interval);
             setIsTransitioning(false);
           }
@@ -76,12 +78,12 @@ export const useActiveMenu = (options: UseActiveMenuOptions = {}): ActiveMenu =>
     };
 
     detectActiveSection();
-    window.addEventListener('scroll', detectActiveSection);
+    scrollableContainer.addEventListener('scroll', detectActiveSection);
 
     return () => {
-      window.removeEventListener('scroll', detectActiveSection);
+      scrollableContainer.removeEventListener('scroll', detectActiveSection);
     };
-  }, [offset]);
+  }, [scrollableContainer, offset]);
 
   // Trigger active change callback.
   useEffect(() => {
