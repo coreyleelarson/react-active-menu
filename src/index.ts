@@ -1,4 +1,5 @@
-import { MouseEvent, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { getOffsetTop } from './utils/getOffsetTop';
 
 export interface ActiveMenuOptions {
   activeClassName?: string;
@@ -18,6 +19,7 @@ export const useActiveMenu = (options: ActiveMenuOptions = {}): ActiveMenuValues
   // because it is the one the user just scrolled past.
   //
   useEffect(() => {
+    const scrollableContainer = document.querySelector('[data-am-container]') || document.body;
     const sections = document.querySelectorAll<HTMLElement>('[data-am-section]');
 
     const detectClosest = () => {
@@ -27,10 +29,13 @@ export const useActiveMenu = (options: ActiveMenuOptions = {}): ActiveMenuValues
 
       for (const section of sections) {
         const id = section.dataset.amSection;
-        const { top } = section.getBoundingClientRect();
+        const { top: containerTop } = scrollableContainer.getBoundingClientRect();
+        const { top: sectionTop } = section.getBoundingClientRect();
 
-        if (top <= 0 + offset && top > closestTop) {
-          closestTop = top;
+        console.log('[ReactActiveMenu]', containerTop, sectionTop);
+
+        if (sectionTop <= 0 + containerTop + offset && sectionTop > closestTop) {
+          closestTop = sectionTop;
           closestId = id;
         }
 
@@ -43,16 +48,17 @@ export const useActiveMenu = (options: ActiveMenuOptions = {}): ActiveMenuValues
     };
 
     detectClosest();
-    document.body.addEventListener('scroll', detectClosest);
+    scrollableContainer.addEventListener('scroll', detectClosest);
 
     return () => {
-      document.body.removeEventListener('scroll', detectClosest);
+      scrollableContainer.removeEventListener('scroll', detectClosest);
     };
   }, [offset]);
 
   // For each trigger, scroll to the section on click.
   //
   useEffect(() => {
+    const scrollableContainer = document.querySelector('[data-am-container]') || document.body;
     const triggers = document.querySelectorAll<HTMLElement>('[data-am-trigger]');
 
     const handleClick = (e: globalThis.MouseEvent) => {
@@ -60,7 +66,8 @@ export const useActiveMenu = (options: ActiveMenuOptions = {}): ActiveMenuValues
       if (!(e.target instanceof HTMLElement)) return;
       const id = e.target.dataset.amTrigger;
       const section = document.querySelector<HTMLElement>(`[data-am-section="${id}"]`);
-      document.body.scrollTo(0, getOffsetTop(section) - offset);
+      const { top: containerTop } = scrollableContainer.getBoundingClientRect();
+      scrollableContainer.scrollTo(0, getOffsetTop(section) - containerTop - offset);
     };
 
     for (const trigger of triggers) {

@@ -8,7 +8,7 @@
 //
 // https://medium.com/@alexcambose/js-offsettop-property-is-not-great-and-here-is-why-b79842ef7582
 //
-const getOffsetTop = (element: HTMLElement | null) => {
+export const getOffsetTop = (element: HTMLElement | null) => {
   let offsetTop = 0;
 
   while (element) {
