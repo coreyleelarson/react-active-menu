@@ -15,20 +15,16 @@ Initialize hook:
 ```javascript
 const {
   active,
-  handleTriggerClick,
-  registerSectionRef,
-  registerTriggerRef,
+  registerContainer,
+  registerSection,
+  registerTrigger,
 } = useActiveMenu();
 ```
 
 Register triggers with unique IDs:
 
 ```javascript
-<button
-  className={active === 'section-1' ? 'active' : undefined}
-  onClick={handleTriggerClick('section-1')}
-  ref={registerTriggerRef('section-1')}
->
+<button ref={registerTrigger('section-1')}>
   Section 1
 </button>
 ```
@@ -36,10 +32,25 @@ Register triggers with unique IDs:
 Register sections with unique IDs:
 
 ```javascript
-<section ref={registerSectionRef('section-1')}>
+<section ref={registerSection('section-1')}>
   <h2>Section 2</h2>
   <p>Lorem ipsum dolor sit amet.</p>
-</button>
+</section>
+```
+
+Register scrollable container:
+
+```javascript
+<div ref={registerContainer}>
+  <section ref={registerSection('section-1')}>
+    <h2>Section 2</h2>
+    <p>Lorem ipsum dolor sit amet.</p>
+  </section>
+  <section ref={registerSection('section-1')}>
+    <h2>Section 2</h2>
+    <p>Lorem ipsum dolor sit amet.</p>
+  </section>
+</div>
 ```
 
 ## Demo

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { getOffsetTop } from './utils/getOffsetTop';
 
 export interface ActiveMenuOptions {
@@ -8,91 +8,109 @@ export interface ActiveMenuOptions {
 
 export interface ActiveMenuValues {
   activeId?: string;
+  registerContainer: (el: HTMLElement) => void;
+  registerSection: (id: string) => (el: HTMLElement) => void;
+  registerTrigger: (id: string) => (el: HTMLElement) => void;
 }
 
 export const useActiveMenu = (options: ActiveMenuOptions = {}): ActiveMenuValues => {
-  const { activeClassName = 'active', offset = 0 } = options;
+  const {
+    activeClassName = 'active',
+    offset = 0,
+  } = options;
   const [activeId, setActiveId] = useState<string>();
+  const containerRef = useRef<HTMLElement>();
+  const sectionRefs = useRef<Map<string, HTMLElement>>(new Map());
+  const triggerRefs = useRef<Map<string, HTMLElement>>(new Map());
+
+  const registerContainer = (el: HTMLElement) => containerRef.current = el;
+  const registerSection = (id: string) => (el: HTMLElement) => sectionRefs.current.set(id, el);
+  const registerTrigger = (id: string) => (el: HTMLElement) => triggerRefs.current.set(id, el);
 
   // For each section, calculate the offset top relative to the viewport.
   // The one that is negative and closest to 0 is considered to be "active"
   // because it is the one the user just scrolled past.
   //
   useEffect(() => {
-    const scrollableContainer = document.querySelector('[data-am-container]') || document.body;
-    const sections = document.querySelectorAll<HTMLElement>('[data-am-section]');
+    const container = containerRef.current;
+    const sections = sectionRefs.current;
 
-    const detectClosest = () => {
-      let closestTop = -Infinity;
-      let closestId;
-      let firstId;
+    if (container && sections.size) {
+      const detectClosest = () => {
+        let closestTop = -Infinity;
+        let closestId;
+        let firstId;
 
-      for (const section of sections) {
-        const id = section.dataset.amSection;
-        const { top: containerTop } = scrollableContainer.getBoundingClientRect();
-        const { top: sectionTop } = section.getBoundingClientRect();
+        for (const [id, section] of sections.entries()) {
+          const { top: containerTop } = container.getBoundingClientRect();
+          const { top: sectionTop } = section.getBoundingClientRect();
 
-        console.log('[ReactActiveMenu]', containerTop, sectionTop);
+          if (sectionTop <= 0 + containerTop + offset && sectionTop > closestTop) {
+            closestTop = sectionTop;
+            closestId = id;
+          }
 
-        if (sectionTop <= 0 + containerTop + offset && sectionTop > closestTop) {
-          closestTop = sectionTop;
-          closestId = id;
+          // Keep track of the first ID to set it by
+          // default if there is currently no active ID.
+          if (!firstId) firstId = id;
         }
 
-        // Keep track of the first ID to set it by
-        // default if there is currently no active ID.
-        if (!firstId) firstId = id;
-      }
+        setActiveId(closestId || firstId);
+      };
 
-      setActiveId(closestId || firstId);
-    };
+      detectClosest();
+      container.addEventListener('scroll', detectClosest);
 
-    detectClosest();
-    scrollableContainer.addEventListener('scroll', detectClosest);
-
-    return () => {
-      scrollableContainer.removeEventListener('scroll', detectClosest);
-    };
+      return () => {
+        container.removeEventListener('scroll', detectClosest);
+      };
+    }
   }, [offset]);
 
   // For each trigger, scroll to the section on click.
   //
   useEffect(() => {
-    const scrollableContainer = document.querySelector('[data-am-container]') || document.body;
-    const triggers = document.querySelectorAll<HTMLElement>('[data-am-trigger]');
+    const container = containerRef.current;
+    const sections = sectionRefs.current;
+    const triggers = triggerRefs.current;
 
-    const handleClick = (e: globalThis.MouseEvent) => {
-      e.preventDefault();
-      if (!(e.target instanceof HTMLElement)) return;
-      const id = e.target.dataset.amTrigger;
-      const section = document.querySelector<HTMLElement>(`[data-am-section="${id}"]`);
-      const { top: containerTop } = scrollableContainer.getBoundingClientRect();
-      scrollableContainer.scrollTo(0, getOffsetTop(section) - containerTop - offset);
-    };
+    if (container && sections.size && triggers.size) {
+      const handleClick = (id: string) => (e: globalThis.MouseEvent) => {
+        e.preventDefault();
+        if (!(e.target instanceof HTMLElement)) return;
+        const section = sections.get(id);
+        if (!section) return;
 
-    for (const trigger of triggers) {
-      trigger.addEventListener('click', handleClick);
-    }
+        const { top: containerTop } = container.getBoundingClientRect();
+        container.scrollTo(0, getOffsetTop(section) - containerTop - offset);
+      };
 
-    return () => {
-      for (const trigger of triggers) {
-        trigger.removeEventListener('click', handleClick);
+      for (const [id, trigger] of triggers.entries()) {
+        trigger.addEventListener('click', handleClick(id));
       }
-    };
+
+      return () => {
+        for (const [id, trigger] of triggers.entries()) {
+          trigger.removeEventListener('click', handleClick(id));
+        }
+      };
+    }
   }, [offset]);
 
   // When the active ID changes, ensure its trigger
   // contains the "active" class.
   //
   useEffect(() => {
-    const triggers = document.querySelectorAll<HTMLElement>('[data-am-trigger]');
+    const triggers = triggerRefs.current;
 
-    for (const trigger of triggers) {
-      trigger.classList.remove(activeClassName);
-      if (trigger.dataset.amTrigger === activeId) trigger.classList.add(activeClassName);
+    if (triggers.size) {
+      for (const [id, trigger] of triggers.entries()) {
+        trigger.classList.remove(activeClassName);
+        if (id === activeId) trigger.classList.add(activeClassName);
+      }
     }
   }, [activeClassName, activeId]);
 
-  return { activeId };
+  return { activeId, registerContainer, registerSection, registerTrigger };
 };
 
