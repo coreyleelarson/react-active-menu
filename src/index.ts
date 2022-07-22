@@ -35,15 +35,16 @@ export const useActiveMenu = (options: ActiveMenuOptions = {}): ActiveMenuValues
     const container = containerRef.current;
     const sections = sectionRefs.current;
 
-    if (container && sections.size) {
+    if (sections.size) {
       const detectClosest = () => {
         let closestTop = -Infinity;
         let closestId;
         let firstId;
 
         for (const [id, section] of sections.entries()) {
-          const { top: containerTop } = container.getBoundingClientRect();
+          const { top: containerTop = 0 } = container?.getBoundingClientRect() || {};
           const { top: sectionTop } = section.getBoundingClientRect();
+
 
           if (sectionTop <= 0 + containerTop + offset && sectionTop > closestTop) {
             closestTop = sectionTop;
@@ -59,10 +60,17 @@ export const useActiveMenu = (options: ActiveMenuOptions = {}): ActiveMenuValues
       };
 
       detectClosest();
-      container.addEventListener('scroll', detectClosest);
 
+      if (container) {
+        container.addEventListener('scroll', detectClosest);
+        return () => {
+          container.removeEventListener('scroll', detectClosest);
+        };
+      }
+
+      window.addEventListener('scroll', detectClosest);
       return () => {
-        container.removeEventListener('scroll', detectClosest);
+        window.removeEventListener('scroll', detectClosest);
       };
     }
   }, [offset]);
@@ -74,15 +82,20 @@ export const useActiveMenu = (options: ActiveMenuOptions = {}): ActiveMenuValues
     const sections = sectionRefs.current;
     const triggers = triggerRefs.current;
 
-    if (container && sections.size && triggers.size) {
+    if (sections.size && triggers.size) {
       const handleClick = (id: string) => (e: globalThis.MouseEvent) => {
         e.preventDefault();
-        if (!(e.target instanceof HTMLElement)) return;
-        const section = sections.get(id);
-        if (!section) return;
 
-        const { top: containerTop } = container.getBoundingClientRect();
-        container.scrollTo(0, getOffsetTop(section) - containerTop - offset);
+        const section = sections.get(id);
+
+        if (!section || !(e.target instanceof HTMLElement)) return;
+
+        if (container) {
+          const { top: containerTop } = container.getBoundingClientRect();
+          container.scrollTo(0, getOffsetTop(section) - containerTop - offset);
+        } else {
+          window.scrollTo(0, getOffsetTop(section) - offset);
+        }
       };
 
       for (const [id, trigger] of triggers.entries()) {
