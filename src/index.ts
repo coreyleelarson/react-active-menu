@@ -8,9 +8,9 @@ export interface ActiveMenuOptions {
 
 export interface ActiveMenuValues {
   activeId?: string;
-  registerContainer: (el: HTMLElement) => void;
-  registerSection: (id: string) => (el: HTMLElement) => void;
-  registerTrigger: (id: string) => (el: HTMLElement) => void;
+  registerContainer: (el: any) => void;
+  registerSection: (id: string) => (el: any) => void;
+  registerTrigger: (id: string) => (el: any) => void;
 }
 
 export const useActiveMenu = (options: ActiveMenuOptions = {}): ActiveMenuValues => {
@@ -19,13 +19,13 @@ export const useActiveMenu = (options: ActiveMenuOptions = {}): ActiveMenuValues
     offset = 0,
   } = options;
   const [activeId, setActiveId] = useState<string>();
-  const containerRef = useRef<HTMLElement>();
-  const sectionRefs = useRef<Map<string, HTMLElement>>(new Map());
-  const triggerRefs = useRef<Map<string, HTMLElement>>(new Map());
+  const containerRef = useRef<any>();
+  const sectionRefs = useRef<Map<string, any>>(new Map());
+  const triggerRefs = useRef<Map<string, any>>(new Map());
 
-  const registerContainer = (el: HTMLElement) => containerRef.current = el;
-  const registerSection = (id: string) => (el: HTMLElement) => sectionRefs.current.set(id, el);
-  const registerTrigger = (id: string) => (el: HTMLElement) => triggerRefs.current.set(id, el);
+  const registerContainer = (el: any) => containerRef.current = el;
+  const registerSection = (id: string) => (el: any) => sectionRefs.current.set(id, el);
+  const registerTrigger = (id: string) => (el: any) => triggerRefs.current.set(id, el);
 
   // For each section, calculate the offset top relative to the viewport.
   // The one that is negative and closest to 0 is considered to be "active"
