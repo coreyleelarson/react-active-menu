@@ -1,109 +1,91 @@
-import { MouseEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { MouseEvent, useEffect, useState } from 'react';
 
-export interface UseActiveMenuOptions {
+export interface ActiveMenuOptions {
+  activeClassName?: string;
   offset?: number;
-  onActiveChange?: (attributes: ActiveMenuAttributes) => void;
-  scrollableElement?: HTMLElement | null;
 }
 
-export interface ActiveMenuAttributes {
-  active?: string;
-  isTransitioning: boolean;
-  sectionRefs: Record<string, HTMLElement>;
-  triggerRefs: Record<string, HTMLButtonElement>;
+export interface ActiveMenuValues {
+  activeId?: string;
 }
 
-export interface ActiveMenu {
-  active?: string;
-  handleTriggerClick: (id: string) => (e: MouseEvent) => void;
-  registerSectionRef: (id: string) => (ref: HTMLElement) => void;
-  registerTriggerRef: (id: string) => (ref: HTMLButtonElement) => void;
-}
+export const useActiveMenu = (options: ActiveMenuOptions = {}): ActiveMenuValues => {
+  const { activeClassName = 'active', offset = 0 } = options;
+  const [activeId, setActiveId] = useState<string>();
 
-export const useActiveMenu = (options: UseActiveMenuOptions = {}): ActiveMenu => {
-  const { offset = 0, onActiveChange, scrollableElement } = options;
-  const [active, setActive] = useState<string>();
-  const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
-
-  const scrollableContainer = useMemo(() => scrollableElement || document.documentElement, [scrollableElement]);
-
-  const sectionRefs = useRef<Record<string, HTMLElement>>({});
-  const triggerRefs = useRef<Record<string, HTMLButtonElement>>({});
-
-  const registerSectionRef = useCallback((id: string) => (ref: HTMLElement) => (sectionRefs.current[id] = ref), []);
-  const registerTriggerRef = useCallback((id: string) => (ref: HTMLButtonElement) => (triggerRefs.current[id] = ref), []);
-  const handleTriggerClick = useCallback(
-    (id: string) => (e: MouseEvent) => {
-      e.preventDefault();
-      setIsTransitioning(true);
-
-      const section = sectionRefs.current[id];
-
-      if (section && scrollableContainer) {
-        const { top: containerTop } = scrollableContainer.getBoundingClientRect();
-        const { top: sectionTop } = section.getBoundingClientRect();
-        const relativeTop = sectionTop - containerTop;
-
-        const targetOffset = scrollableContainer.scrollTop + relativeTop - offset;
-
-        // Scroll the body to the target section.
-        scrollableContainer.scrollTo({
-          behavior: 'smooth',
-          top: targetOffset,
-        });
-
-        // Reset isTransitioning once smooth scrolling has completed.
-        let interval = setInterval(() => {
-          if (scrollableContainer.scrollTop === targetOffset) {
-            clearInterval(interval);
-            setIsTransitioning(false);
-          }
-        });
-      }
-    },
-    [offset, scrollableContainer]
-  );
-
-  // Detect active section on scroll.
+  // For each section, calculate the offset top relative to the viewport.
+  // The one that is negative and closest to 0 is considered to be "active"
+  // because it is the one the user just scrolled past.
+  //
   useEffect(() => {
-    const detectActiveSection = () => {
+    const sections = document.querySelectorAll<HTMLElement>('[data-am-section]');
+
+    const detectClosest = () => {
+      let closestTop = -Infinity;
       let closestId;
-      let closestDimension;
-      
-      const { top: containerTop } = scrollableContainer.getBoundingClientRect();
+      let firstId;
 
-      for (const [id, section] of Object.entries(sectionRefs.current)) {
-        const { top: sectionTop } = section.getBoundingClientRect();
-        const relativeTop = sectionTop - containerTop;
+      for (const section of sections) {
+        const id = section.dataset.amSection;
+        const { top } = section.getBoundingClientRect();
 
-        if (!closestDimension || (relativeTop <= offset && relativeTop > closestDimension)) {
-          closestDimension = sectionTop;
+        if (top <= 0 + offset && top > closestTop) {
+          closestTop = top;
           closestId = id;
         }
+
+        // Keep track of the first ID to set it by
+        // default if there is currently no active ID.
+        if (!firstId) firstId = id;
       }
 
-      setActive(closestId);
+      setActiveId(closestId || firstId);
     };
 
-    detectActiveSection();
-    scrollableContainer.addEventListener('scroll', detectActiveSection);
+    detectClosest();
+    document.body.addEventListener('scroll', detectClosest);
 
     return () => {
-      scrollableContainer.removeEventListener('scroll', detectActiveSection);
+      document.body.removeEventListener('scroll', detectClosest);
     };
-  }, [scrollableContainer, offset]);
+  }, [offset]);
 
-  // Trigger active change callback.
+  // For each trigger, scroll to the section on click.
+  //
   useEffect(() => {
-    if (!isTransitioning) {
-      onActiveChange?.({
-        active,
-        isTransitioning: isTransitioning,
-        sectionRefs: sectionRefs.current,
-        triggerRefs: triggerRefs.current,
-      });
-    }
-  }, [active, isTransitioning, onActiveChange, sectionRefs, triggerRefs]);
+    const triggers = document.querySelectorAll<HTMLElement>('[data-am-trigger]');
 
-  return { active, handleTriggerClick, registerSectionRef, registerTriggerRef };
+    const handleClick = (e: globalThis.MouseEvent) => {
+      e.preventDefault();
+      if (!(e.target instanceof HTMLElement)) return;
+      const id = e.target.dataset.amTrigger;
+      const section = document.querySelector<HTMLElement>(`[data-am-section="${id}"]`);
+      document.body.scrollTo(0, getOffsetTop(section) - offset);
+    };
+
+    for (const trigger of triggers) {
+      trigger.addEventListener('click', handleClick);
+    }
+
+    return () => {
+      for (const trigger of triggers) {
+        trigger.removeEventListener('click', handleClick);
+      }
+    };
+  }, [offset]);
+
+  // When the active ID changes, ensure its trigger
+  // contains the "active" class.
+  //
+  useEffect(() => {
+    const triggers = document.querySelectorAll<HTMLElement>('[data-am-trigger]');
+
+    for (const trigger of triggers) {
+      trigger.classList.remove(activeClassName);
+      if (trigger.dataset.amTrigger === activeId) trigger.classList.add(activeClassName);
+    }
+  }, [activeClassName, activeId]);
+
+  return { activeId };
 };
+
