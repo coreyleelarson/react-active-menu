@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
+import type { PropsWithChildren } from 'react';
 import { getOffsetTop } from './utils/getOffsetTop';
 
 export interface ActiveMenuOptions {
@@ -13,6 +14,18 @@ export interface ActiveMenuValues {
   registerSection: (id: string) => (el: any) => void;
   registerTrigger: (id: string) => (el: any) => void;
 }
+
+export interface ActiveMenuProviderProps {
+  menu: ActiveMenuValues;
+}
+
+const ActiveMenuContext = createContext<ActiveMenuValues>({} as ActiveMenuValues);
+export const ActiveMenuProvider = ({ children, menu }: PropsWithChildren<ActiveMenuProviderProps>) => (
+  <ActiveMenuContext.Provider value={menu}>
+    {children}
+  </ActiveMenuContext.Provider>
+);
+export const useActiveMenuContext = () => useContext(ActiveMenuContext);
 
 export const useActiveMenu = (options: ActiveMenuOptions = {}): ActiveMenuValues => {
   const {
