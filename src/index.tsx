@@ -76,15 +76,19 @@ export const useActiveMenu = (options: ActiveMenuOptions = {}): ActiveMenuValues
 
       detectClosest();
 
+      window.addEventListener('resize', detectClosest);
+
       if (container) {
         container.addEventListener('scroll', detectClosest);
         return () => {
+          window.removeEventListener('resize', detectClosest);
           container.removeEventListener('scroll', detectClosest);
         };
       }
 
       window.addEventListener('scroll', detectClosest);
       return () => {
+        window.removeEventListener('resize', detectClosest);
         window.removeEventListener('scroll', detectClosest);
       };
     }
