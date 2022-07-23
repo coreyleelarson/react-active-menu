@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ActiveMenuOptions, ActiveMenuValues } from "./types";
 import { getOffsetTop } from "./utils";
 
@@ -16,6 +16,30 @@ export const useActiveMenu = (options: ActiveMenuOptions = {}): ActiveMenuValues
   const registerContainer = (el: any) => containerRef.current = el;
   const registerSection = (id: string) => (el: any) => sectionRefs.current.set(id, el);
   const registerTrigger = (id: string) => (el: any) => triggerRefs.current.set(id, el);
+
+  const goTo = useCallback((id: string) => {
+    const container = containerRef.current;
+    const sections = sectionRefs.current;
+
+    if (sections) {
+      const section = sections.get(id);
+
+      if (!section) return;
+
+      if (container) {
+        const { top: containerTop } = container.getBoundingClientRect();
+        container.scrollTo({
+          behavior: smooth ? 'smooth' : 'auto',
+          top: getOffsetTop(section) - containerTop - offset,
+        });
+      } else {
+        window.scrollTo({
+          behavior: smooth ? 'smooth' : 'auto',
+          top: getOffsetTop(section) - offset,
+        });
+      }
+    }
+  }, [offset, smooth]);
 
   // For each section, calculate the offset top relative to the viewport.
   // The one that is negative and closest to 0 is considered to be "active"
@@ -72,30 +96,12 @@ export const useActiveMenu = (options: ActiveMenuOptions = {}): ActiveMenuValues
   // For each trigger, scroll to the section on click.
   //
   useEffect(() => {
-    const container = containerRef.current;
-    const sections = sectionRefs.current;
     const triggers = triggerRefs.current;
 
-    if (sections.size && triggers.size) {
+    if (triggers.size) {
       const handleClick = (id: string) => (e: globalThis.MouseEvent) => {
         e.preventDefault();
-
-        const section = sections.get(id);
-
-        if (!section || !(e.target instanceof HTMLElement)) return;
-
-        if (container) {
-          const { top: containerTop } = container.getBoundingClientRect();
-          container.scrollTo({
-            behavior: smooth ? 'smooth' : 'auto',
-            top: getOffsetTop(section) - containerTop - offset,
-          });
-        } else {
-          window.scrollTo({
-            behavior: smooth ? 'smooth' : 'auto',
-            top: getOffsetTop(section) - offset,
-          });
-        }
+        goTo(id);
       };
 
       let cleanupFunctions: VoidFunction[] = [];
@@ -128,5 +134,5 @@ export const useActiveMenu = (options: ActiveMenuOptions = {}): ActiveMenuValues
     }
   }, [activeClassName, activeId]);
 
-  return { activeId, registerContainer, registerSection, registerTrigger };
+  return { activeId, goTo, registerContainer, registerSection, registerTrigger };
 };
