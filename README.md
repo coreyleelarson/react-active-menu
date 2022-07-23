@@ -53,6 +53,28 @@ Register scrollable container:
 </div>
 ```
 
+## API
+
+```javascript
+const {
+  active,
+  registerContainer,
+  registerSection,
+  registerTrigger,
+} = useActiveMenu({
+  activeClassName,
+  offset,
+  smooth,
+});
+```
+
+**Options**
+|Key|Type|Default|Description|
+|-|-|-|-|
+|activeClassName|string|'active'|Specifies the className that gets added to the active trigger.|
+|offset|number|0|Specifies the threshold distance (px) from the container top where the active section detection gets triggered.|
+|smooth|boolean|false|Specifies whether scrolling to each section should animate smoothly or not when a trigger is clicked.|
+
 ## Demos
 
 ### Without Container
