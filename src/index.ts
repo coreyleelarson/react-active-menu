@@ -4,6 +4,7 @@ import { getOffsetTop } from './utils/getOffsetTop';
 export interface ActiveMenuOptions {
   activeClassName?: string;
   offset?: number;
+  smooth?: boolean;
 }
 
 export interface ActiveMenuValues {
@@ -17,6 +18,7 @@ export const useActiveMenu = (options: ActiveMenuOptions = {}): ActiveMenuValues
   const {
     activeClassName = 'active',
     offset = 0,
+    smooth = false,
   } = options;
   const [activeId, setActiveId] = useState<string>();
   const containerRef = useRef<any>();
@@ -92,23 +94,33 @@ export const useActiveMenu = (options: ActiveMenuOptions = {}): ActiveMenuValues
 
         if (container) {
           const { top: containerTop } = container.getBoundingClientRect();
-          container.scrollTo(0, getOffsetTop(section) - containerTop - offset);
+          container.scrollTo({
+            behavior: smooth ? 'smooth' : 'auto',
+            top: getOffsetTop(section) - containerTop - offset,
+          });
         } else {
-          window.scrollTo(0, getOffsetTop(section) - offset);
+          window.scrollTo({
+            behavior: smooth ? 'smooth' : 'auto',
+            top: getOffsetTop(section) - offset,
+          });
         }
       };
 
+      let cleanupFunctions: VoidFunction[] = [];
+
       for (const [id, trigger] of triggers.entries()) {
-        trigger.addEventListener('click', handleClick(id));
+        const handler = handleClick(id);
+        trigger.addEventListener('click', handler);
+        cleanupFunctions.push(() => trigger.removeEventListener('click', handler));
       }
 
       return () => {
-        for (const [id, trigger] of triggers.entries()) {
-          trigger.removeEventListener('click', handleClick(id));
+        for (const cleanupFunction of cleanupFunctions) {
+          cleanupFunction();
         }
       };
     }
-  }, [offset]);
+  }, [offset, smooth]);
 
   // When the active ID changes, ensure its trigger
   // contains the "active" class.
