@@ -1,6 +1,6 @@
 {
   "name": "react-active-menu",
-  "version": "0.0.12-beta.1",
+  "version": "0.0.12",
   "author": "Corey Larson <coreyleelarson@gmail.com>",
   "description": "A React hook to build an active scrolling menu navigation.",
   "keywords": [
