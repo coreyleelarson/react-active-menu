@@ -1,6 +1,6 @@
 {
   "name": "react-active-menu",
-  "version": "0.0.13",
+  "version": "0.0.14",
   "author": "Corey Larson <coreyleelarson@gmail.com>",
   "description": "A React hook to build an active scrolling menu navigation.",
   "keywords": [
@@ -11,6 +11,10 @@
     "navigation"
   ],
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/coreyleelarson/react-active-menu.git"
+  },
   "files": [
     "dist"
   ],
