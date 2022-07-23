@@ -14,7 +14,7 @@ Initialize hook:
 
 ```javascript
 const {
-  active,
+  activeId,
   registerContainer,
   registerSection,
   registerTrigger,
@@ -57,7 +57,7 @@ Register scrollable container:
 
 ```javascript
 const {
-  active,
+  activeId,
   registerContainer,
   registerSection,
   registerTrigger,
